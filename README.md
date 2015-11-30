@@ -60,7 +60,7 @@ val df = sqlContext.read
     .format("com.crealytics.google.analytics")
     .option("serviceAccountId", "xxx-xxxxxxx@developer.gserviceaccount.com")
     .option("keyFileLocation", "the_key_file.p12")
-    .option("ids", "123456789")
+    .option("ids", "ga:12345678")
     .option("startDate", "7daysAgo")
     .option("endDate", "yesterday")
     .option("dimensions", "browser,city")
