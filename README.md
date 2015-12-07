@@ -64,8 +64,9 @@ val df = sqlContext.read
     .option("startDate", "7daysAgo")
     .option("endDate", "yesterday")
     .option("dimensions", "browser,city")
-    .option("metrics", "sessions,bounces")
     .load()
+    
+df.select("browser", "users").show()
 ```
 
 ## Building From Source

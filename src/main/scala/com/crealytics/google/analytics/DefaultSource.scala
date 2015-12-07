@@ -35,8 +35,7 @@ class DefaultSource
       parameters("ids"),
       parameters("startDate"),
       parameters("endDate"),
-      parameters("dimensions").split(",").map(_.trim),
-      parameters("metrics").split(",").map(_.trim)
+      parameters("dimensions").split(",").map(_.trim)
     )(sqlContext)
   }
 }
