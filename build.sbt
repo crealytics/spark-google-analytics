@@ -1,6 +1,6 @@
 name := "spark-google-analytics"
 
-version := "0.8.0"
+version := "0.8.1"
 
 organization := "com.crealytics"
 
