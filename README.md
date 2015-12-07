@@ -46,7 +46,6 @@ The API accepts several options (see the [Google Analytics developer docs](https
 * `startDate`: the start date for the report
 * `endDate`: the end date for the report
 * `dimensions`: the dimensions by which the data will be segmented
-* `metrics`: the metrics (numerical data) that you want to retrieve
 
 ### Scala API
 __Spark 1.4+:__
@@ -64,8 +63,9 @@ val df = sqlContext.read
     .option("startDate", "7daysAgo")
     .option("endDate", "yesterday")
     .option("dimensions", "browser,city")
-    .option("metrics", "sessions,bounces")
     .load()
+    
+df.select("browser", "users").show()
 ```
 
 ## Building From Source
