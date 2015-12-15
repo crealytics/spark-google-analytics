@@ -2,32 +2,43 @@ language: scala
 sudo: false
 cache:
   directories:
-    - $HOME/.ivy2
+  - "$HOME/.ivy2"
 matrix:
   include:
-    # Spark 1.3.0
-    - jdk: openjdk6
-      scala: 2.10.6
-      env: TEST_SPARK_VERSION="1.3.0"
-    - jdk: openjdk6
-      scala: 2.11.7
-      env: TEST_SPARK_VERSION="1.3.0"
-    # Spark 1.4.1
-    - jdk: openjdk6
-      scala: 2.11.7
-      env: TEST_SPARK_VERSION="1.4.1"
-    - jdk: openjdk7
-      scala: 2.11.7
-      env: TEST_SPARK_VERSION="1.4.1"
-    # Spark 1.5.0
-    - jdk: openjdk7
-      scala: 2.10.6
-      env: TEST_SPARK_VERSION="1.5.2"
-    - jdk: openjdk7
-      scala: 2.11.7
-      env: TEST_SPARK_VERSION="1.5.2"
+  - jdk: openjdk6
+    scala: 2.10.6
+    env: TEST_SPARK_VERSION="1.3.0"
+  - jdk: openjdk6
+    scala: 2.11.7
+    env: TEST_SPARK_VERSION="1.3.0"
+  - jdk: openjdk6
+    scala: 2.11.7
+    env: TEST_SPARK_VERSION="1.4.1"
+  - jdk: openjdk7
+    scala: 2.11.7
+    env: TEST_SPARK_VERSION="1.4.1"
+  - jdk: openjdk7
+    scala: 2.10.6
+    env: TEST_SPARK_VERSION="1.5.2"
+  - jdk: openjdk7
+    scala: 2.11.7
+    env: TEST_SPARK_VERSION="1.5.2"
+before_install:
+- openssl aes-256-cbc -K $encrypted_dcbc99d64db2_key -iv $encrypted_dcbc99d64db2_iv -in privkey.asc.enc -out privkey.asc -d
+before_script:
+- gpg --import privkey.asc
 script:
-  - sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION compile
-  - sbt ++$TRAVIS_SCALA_VERSION assembly
-  - sbt ++$TRAVIS_SCALA_VERSION scalastyle
-  - sbt ++$TRAVIS_SCALA_VERSION "test:scalastyle"
+- sbt -Dspark.testVersion=$TEST_SPARK_VERSION ++$TRAVIS_SCALA_VERSION compile
+- sbt ++$TRAVIS_SCALA_VERSION assembly
+- sbt ++$TRAVIS_SCALA_VERSION scalastyle
+- sbt ++$TRAVIS_SCALA_VERSION "test:scalastyle"
+env:
+  global:
+  - secure: U13mKn2r++iJLj97Fdrv0DAJ9pCuwQfqKCmvOQH/1CkJnBP2U/+rRSfCXScjg1zm8oqo5bHEL2FXflHJgeUUDv1e7vEgkE/uhPClrJHm+7KV0CHZkbIIJUEpbr3LNVrrDKrNl0LDfflrHfaauEw9Vc+ZbQBFa0iG4xPauSs/4tfP2O54mEWXnKrxoizZodNUXhJF2qjCngs8iFh7Vq61saLNw3c6NQpgC3PIyyB85cY3MQ6kWiIhsd2ao3sEzLkiN92Qzhqk+Fm5ccXgJKV80i44tKp9ZD7hb2zb5MdWejM88uLaE9lzrWVii/OARd+/0VE0B8kQwWpN3KTctPIMavJNAKUxu3jivXecmZXVzJ68Eg2rEVw9ap7P4Q2csGcAWLn7dfwzHbgHfWNERaREYMsWG2a/xppH+e1H/Y3EjfyCT3+E8rvaxl8OAD8oI8Jj1EjO7IP0kR1ujyaTOx1RtVPWhuO09G3BoFyPmK0Z5veqX1KH/FFvZyNDi6jAtzYkepFOSSOOzqmhxHuMhA7jOx2mtrHe2/10Xw3/fRfhh9I//8yOKHBiN0jxKglWse9jy+l9PEjocH2XqA9uP95WSIjaA1mhzF3aOh+FqCPqBNarmKrcjhoPC25SbR3v3w+VRf0oJ/W9Heh5dRBFl9T27w8xKb11BiZBMmtria6FBg8=
+  - secure: Qm1NmPIDTmVpZ4OOX6SE7rMrrIUOhe71SHvNXtmKH3j8aumd9di6HO8a3refcViDqk2cwxg2xHSecOgmI8zNEDfDo8c9puxOEjRRHqA1cC4AY4hv7K0NX3hvLKeZ2Cq3aL8qfmTVomCecgmUvVUzyJ8shgwdr1WRvfvlwRGOYYAAhHS40oVDHrvGND0afEH2eIiHAVFzxDC0pRH0FdjTO8jw2Jua51ZYmvypjwxk1JhKNU3mcy9A8FnGLLg0b8ryVWEle916CcfrCKIf1DnsJHTiD4amfxW9U8ECczU5IPz8v75pAU1az0816Tx/BgLlvF5HS8MldtyW03pfyuuSSY2I0heEwY1R+GKV7iV4BQydVc2GTTPv4JZb9SPViZjBWK8t/kolxFOpHJfEEolqs2yq4ByyEdilMyDfJu6WJto/i1TId30r3+lYxrFLaYME3AcTU8o3g0ee0JZtbBEXsy+JZaHPlk2Z0NGeiu5S1X+TYx2nYi4pNVOtqrpbUZFYf2s92F/2h5fcsO+iG7KDp4R+ysPjZ/kC2RapmkGdHAzDaFF1vdUz9RD23DoIS/rt/EODMbvlxbxZsjjRpNsdz47p1z5DNcucRk5e6Rg58KtRHboq22l1LubR6ufoXi0SBHSZNzp8XnJFpJNDtPzEUrlS9ITL+DHDYo4iY1iz8s4=
+after_success:
+  - >
+      test "${TRAVIS_PULL_REQUEST}" = 'false' &&
+      test "${TRAVIS_JDK_VERSION}" = 'openjdk7' &&
+      test "${TRAVIS_BRANCH}" = 'master' &&
+      sbt 'set credentials += Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", System.getenv("SONATYPE_USERNAME"), System.getenv("SONATYPE_PASSWORD"))' publishSigned sonatypeRelease
