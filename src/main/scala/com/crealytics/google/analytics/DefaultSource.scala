@@ -2,6 +2,7 @@ package com.crealytics.google.analytics
 
 
 import java.io.File
+import java.util
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
@@ -25,7 +26,7 @@ class DefaultSource
       .setJsonFactory(jsonFactory)
       .setServiceAccountId(serviceAccountId)
       .setServiceAccountPrivateKeyFromP12File(new File(keyFileLocation))
-      .setServiceAccountScopes(AnalyticsScopes.all())
+      .setServiceAccountScopes(util.Arrays.asList(AnalyticsScopes.ANALYTICS_READONLY))
       .build()
     val analytics = new Analytics.Builder(httpTransport, jsonFactory, credential)
       .setApplicationName("spark-google-analytics")
