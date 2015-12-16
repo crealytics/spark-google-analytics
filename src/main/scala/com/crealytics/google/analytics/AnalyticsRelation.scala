@@ -41,7 +41,16 @@ case class AnalyticsRelation protected[crealytics](
       case (struct, column) =>
         val attributes = column.getAttributes
         val dataType = sparkDataTypeForGoogleDataType(attributes.get("dataType"))
-        struct.add(column.getId.replaceFirst("ga:", ""), dataType)
+
+        val templateBounds: Option[(Int, Int)] = for {
+          minTemplateIndex <- Option(attributes.get("minTemplateIndex")).map(_.toInt)
+          maxTemplateIndex <- Option(attributes.get("maxTemplateIndex")).map(_.toInt)
+        } yield((minTemplateIndex, maxTemplateIndex))
+
+        val columnNames = templateBounds.map { case (minIndex, maxIndex) =>
+          (minIndex to maxIndex).map(i => column.getId.replaceFirst("XX", s"$i"))
+        }.getOrElse(Seq(column.getId))
+        columnNames.foldLeft(struct) { case(s, c) => s.add(c.replaceFirst("ga:", ""), dataType) }
     }
 
   lazy val allMetrics = createSchemaFromColumns(allColumns.filter(_.getAttributes.get("type") == "METRIC"))
