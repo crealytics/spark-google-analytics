@@ -1,9 +1,8 @@
 package com.crealytics.google.analytics
 
 import java.math.BigDecimal
-import java.sql.{Date, Timestamp}
-import java.text.NumberFormat
-import java.util.Locale
+import java.text.{SimpleDateFormat, NumberFormat}
+import java.util.{Calendar, Date, Locale}
 
 import com.google.api.services.analytics.Analytics
 import org.apache.spark.rdd.RDD
@@ -19,7 +18,8 @@ case class AnalyticsRelation protected[crealytics](
                                                     ids: String,
                                                     startDate: String,
                                                     endDate: String,
-                                                    dimensions: Seq[String]
+                                                    dimensions: Seq[String],
+                                                    queryIndividualDays: Boolean
                                                   )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan with PrunedScan with PrunedFilteredScan {
 
@@ -30,8 +30,43 @@ case class AnalyticsRelation protected[crealytics](
   override def buildScan(requiredColumns: Array[String]): RDD[Row] = buildScan(requiredColumns, Array())
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
-    val results = getResults(ids, startDate, endDate, requiredColumns, filters)
-    sqlContext.sparkContext.parallelize(results.map(Row.fromSeq))
+    if (queryIndividualDays) {
+      if (!requiredColumns.contains("date")) {
+        throw new IllegalArgumentException("If you use queryIndividualDays, you must select the date column.")
+      }
+
+      getDateRange.map(date => {
+        val results = getResults(ids, date, date, requiredColumns, filters)
+        sqlContext.sparkContext.parallelize(results.map(Row.fromSeq))
+      }).reduce(_ union _)
+    } else {
+      val results = getResults(ids, startDate, endDate, requiredColumns, filters)
+      sqlContext.sparkContext.parallelize(results.map(Row.fromSeq))
+    }
+  }
+
+  private def nDaysAgo(beginDate: Date, n: Integer) = {
+    val cal = new Calendar.Builder().setInstant(beginDate).build
+    cal.add(Calendar.DATE, n)
+    cal.getTime
+  }
+
+  private def parseGoogleDate(date: String) = {
+    if (date == "today") nDaysAgo(new Date(), 0)
+    else if (date == "yesterday") nDaysAgo(new Date(), 1)
+    else if (date.endsWith("daysAgo")) nDaysAgo(new Date(), date.replace("daysAgo", "").toInt)
+    else new SimpleDateFormat("yyyyMMdd").parse(date)
+  }
+
+  private def getDateRange = {
+    val beginDate = parseGoogleDate(startDate)
+    val stopDate = parseGoogleDate(endDate)
+    val end = (new Calendar.Builder).setInstant(stopDate).build
+    end.setTime(stopDate)
+    Iterator.iterate((new Calendar.Builder).setInstant(beginDate).build) { d =>
+      d.add(Calendar.DATE, 1)
+      d
+    }.takeWhile(!_.after(end)).map(_.getTime.formatted("yyyyMMdd"))
   }
 
   lazy val allColumns = analytics.metadata.columns.list("ga").execute.getItems.asScala
@@ -79,8 +114,8 @@ case class AnalyticsRelation protected[crealytics](
         .getOrElse(NumberFormat.getInstance(Locale.getDefault).parse(datum).doubleValue())
       case _: BooleanType => datum.toBoolean
       case _: DecimalType => new BigDecimal(datum.replaceAll(",", ""))
-      case _: TimestampType => Timestamp.valueOf(datum)
-      case _: DateType => Date.valueOf(datum)
+      case _: TimestampType => java.sql.Timestamp.valueOf(datum)
+      case _: DateType => java.sql.Date.valueOf(datum)
       case _: StringType => datum
       case _ => throw new RuntimeException(s"Unsupported type: ${castType.typeName}")
     }
