@@ -1,9 +1,8 @@
 package com.crealytics.google.analytics
 
 import java.math.BigDecimal
-import java.sql.{Date, Timestamp}
-import java.text.NumberFormat
-import java.util.Locale
+import java.text.{SimpleDateFormat, NumberFormat}
+import java.util.{Calendar, Date, Locale}
 
 import com.google.api.services.analytics.Analytics
 import org.apache.spark.rdd.RDD
@@ -19,7 +18,8 @@ case class AnalyticsRelation protected[crealytics](
                                                     ids: String,
                                                     startDate: String,
                                                     endDate: String,
-                                                    dimensions: Seq[String]
+                                                    dimensions: Seq[String],
+                                                    queryIndividualDays: Boolean
                                                   )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan with PrunedScan with PrunedFilteredScan {
 
@@ -32,6 +32,34 @@ case class AnalyticsRelation protected[crealytics](
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
     val results = getResults(ids, startDate, endDate, requiredColumns, filters)
     sqlContext.sparkContext.parallelize(results.map(Row.fromSeq))
+  }
+
+  private def nDaysAgo(beginDate: Date, n: Integer) = {
+    val cal = calendarForDate(beginDate)
+    cal.add(Calendar.DATE, n)
+    cal.getTime
+  }
+
+  val analyticsDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+
+  private def parseGoogleDate(date: String) = {
+    if (date == "today") nDaysAgo(new Date(), 0)
+    else if (date == "yesterday") nDaysAgo(new Date(), 1)
+    else if (date.endsWith("daysAgo")) nDaysAgo(new Date(), date.replace("daysAgo", "").toInt)
+    else analyticsDateFormat.parse(date)
+  }
+
+  private def calendarForDate(date: Date) = {
+    val calendar = Calendar.getInstance
+    calendar.setTime(date)
+    calendar
+  }
+  private def getDateRange = {
+    val end = calendarForDate(parseGoogleDate(endDate))
+    Iterator.iterate(calendarForDate(parseGoogleDate(startDate))) { d =>
+      d.add(Calendar.DATE, 1)
+      d
+    }.takeWhile(!_.after(end)).map(dt => analyticsDateFormat.format(dt.getTime))
   }
 
   lazy val allColumns = analytics.metadata.columns.list("ga").execute.getItems.asScala
@@ -79,8 +107,8 @@ case class AnalyticsRelation protected[crealytics](
         .getOrElse(NumberFormat.getInstance(Locale.getDefault).parse(datum).doubleValue())
       case _: BooleanType => datum.toBoolean
       case _: DecimalType => new BigDecimal(datum.replaceAll(",", ""))
-      case _: TimestampType => Timestamp.valueOf(datum)
-      case _: DateType => Date.valueOf(datum)
+      case _: TimestampType => java.sql.Timestamp.valueOf(datum)
+      case _: DateType => java.sql.Date.valueOf(datum)
       case _: StringType => datum
       case _ => throw new RuntimeException(s"Unsupported type: ${castType.typeName}")
     }
@@ -122,32 +150,41 @@ case class AnalyticsRelation protected[crealytics](
                          requiredColumns: Seq[String], filters: Array[Filter]): Seq[Seq[Any]] = {
     val rawMetrics = requiredColumns.filterNot(dimensions.contains)
     val requiredMetrics = if (rawMetrics.nonEmpty) rawMetrics
-      // We need at least 1 metric, otherwise Google complains
-      else Seq[String](allMetrics.head.name.replaceFirst("ga:", ""))
-    val metricsSchema = allMetrics.filter( m => requiredMetrics.contains(m.name))
+    // We need at least 1 metric, otherwise Google complains
+    else Seq[String](allMetrics.head.name.replaceFirst("ga:", ""))
+    val metricsSchema = allMetrics.filter(m => requiredMetrics.contains(m.name))
     val completeSchema = new StructType(metricsSchema.toArray ++ allDimensions.fields)
     val maxPageSize = 10000
     val filtersString = combineFilters(filters)
-    val queryWithoutFilter = analytics.data().ga()
-      .get(ids, startDate, endDate, requiredMetrics.map("ga:" + _).mkString(","))
-      .setDimensions(allDimensions.map("ga:" + _.name).mkString(","))
-      .setMaxResults(maxPageSize)
-    val query = if (filters.length > 0) queryWithoutFilter.setFilters(filtersString) else queryWithoutFilter
-    val firstResult = query.execute
-    val requiredPages = firstResult.getTotalResults / maxPageSize
-    val restResults = (1 to requiredPages).flatMap { pageNum =>
-      retry(3)(query.setStartIndex(pageNum * maxPageSize).execute.getRows.asScala).get
-    }
-    val columnHeaders = firstResult.getColumnHeaders.asScala
-    val combinedResult = (firstResult.getRows.asScala ++ restResults).map(_.asScala)
-    combinedResult.map { line =>
-      columnHeaders.zip(line).flatMap { case (header, cell) =>
-        val name = header.getName.replaceFirst("ga:", "")
-        if (requiredColumns.contains(name)) {
-          val dataType = completeSchema.apply(name).dataType
-          Some(castTo(cell, dataType))
-        } else None
+
+    def queryDateRange(startDate: String, endDate: String) = {
+      val queryWithoutFilter = analytics.data().ga()
+        .get(ids, startDate, endDate, requiredMetrics.map("ga:" + _).mkString(","))
+        .setDimensions(allDimensions.map("ga:" + _.name).mkString(","))
+        .setMaxResults(maxPageSize)
+      val query = if (filters.length > 0) queryWithoutFilter.setFilters(filtersString) else queryWithoutFilter
+      val firstResult = query.execute
+      val requiredPages = firstResult.getTotalResults / maxPageSize
+      val restResults = (1 to requiredPages).flatMap { pageNum =>
+        retry(3)(query.setStartIndex(pageNum * maxPageSize).execute.getRows.asScala).get
       }
+      val columnHeaders = firstResult.getColumnHeaders.asScala
+      val combinedResult = (firstResult.getRows.asScala ++ restResults).map(_.asScala)
+      combinedResult.map { line =>
+        columnHeaders.zip(line).flatMap { case (header, cell) =>
+          val name = header.getName.replaceFirst("ga:", "")
+          if (requiredColumns.contains(name)) {
+            val dataType = completeSchema.apply(name).dataType
+            Some(castTo(cell, dataType))
+          } else None
+        }
+      }
+    }
+
+    if (queryIndividualDays) {
+      getDateRange.map(date => queryDateRange(date, date)).reduce(_ union _)
+    } else {
+      queryDateRange(startDate, endDate)
     }
   }
 }
