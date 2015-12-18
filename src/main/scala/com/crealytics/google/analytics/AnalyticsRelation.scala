@@ -31,10 +31,6 @@ case class AnalyticsRelation protected[crealytics](
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
     if (queryIndividualDays) {
-      if (!requiredColumns.contains("date")) {
-        throw new IllegalArgumentException("If you use queryIndividualDays, you must select the date column.")
-      }
-
       getDateRange.map(date => {
         val results = getResults(ids, date, date, requiredColumns, filters)
         sqlContext.sparkContext.parallelize(results.map(Row.fromSeq))

@@ -31,13 +31,19 @@ class DefaultSource
     val analytics = new Analytics.Builder(httpTransport, jsonFactory, credential)
       .setApplicationName("spark-google-analytics")
       .build()
+    val dimensions = parameters("dimensions").split(",").map(_.trim)
+    val queryIndividualDays: Boolean = parameters.getOrElse("queryIndividualDays", "false") == "true"
+    if (queryIndividualDays && !dimensions.contains("date")) {
+      throw new IllegalArgumentException("If you use queryIndividualDays, you must select the date dimension.")
+    }
+
     AnalyticsRelation(
       analytics,
       parameters("ids"),
       parameters("startDate"),
       parameters("endDate"),
-      parameters("dimensions").split(",").map(_.trim),
-      parameters.getOrElse("queryIndividualDays", "false") == "true"
+      dimensions,
+      queryIndividualDays
     )(sqlContext)
   }
 }
