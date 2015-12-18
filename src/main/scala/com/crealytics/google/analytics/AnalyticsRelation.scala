@@ -40,11 +40,13 @@ case class AnalyticsRelation protected[crealytics](
     cal.getTime
   }
 
+  val analyticsDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+
   private def parseGoogleDate(date: String) = {
     if (date == "today") nDaysAgo(new Date(), 0)
     else if (date == "yesterday") nDaysAgo(new Date(), 1)
     else if (date.endsWith("daysAgo")) nDaysAgo(new Date(), date.replace("daysAgo", "").toInt)
-    else new SimpleDateFormat("yyyyMMdd").parse(date)
+    else analyticsDateFormat.parse(date)
   }
 
   private def getDateRange = {
@@ -55,7 +57,7 @@ case class AnalyticsRelation protected[crealytics](
     Iterator.iterate((new Calendar.Builder).setInstant(beginDate).build) { d =>
       d.add(Calendar.DATE, 1)
       d
-    }.takeWhile(!_.after(end)).map(_.getTime.formatted("yyyyMMdd"))
+    }.takeWhile(!_.after(end)).map(dt => analyticsDateFormat.format(dt.getTime))
   }
 
   lazy val allColumns = analytics.metadata.columns.list("ga").execute.getItems.asScala
