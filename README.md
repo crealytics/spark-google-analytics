@@ -15,13 +15,13 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.crealytics
 artifactId: spark-google-analytics_2.10
-version: 0.8.3
+version: 0.9.0
 ```
 ### Scala 2.11
 ```
 groupId: com.crealytics
 artifactId: spark-google-analytics_2.11
-version: 0.8.3
+version: 0.9.0
 ```
 
 ## Using with Spark shell
@@ -29,12 +29,12 @@ This package can be added to  Spark using the `--packages` command line option. 
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.crealytics:spark-google-analytics_2.11:0.8.3
+$SPARK_HOME/bin/spark-shell --packages com.crealytics:spark-google-analytics_2.11:0.9.0
 ```
 
 ### Spark compiled with Scala 2.10
 ```
-$SPARK_HOME/bin/spark-shell --packages com.crealytics:spark-google-analytics_2.10:0.8.3
+$SPARK_HOME/bin/spark-shell --packages com.crealytics:spark-google-analytics_2.10:0.9.0
 ```
 
 ## Features
@@ -46,6 +46,7 @@ The API accepts several options (see the [Google Analytics developer docs](https
 * `startDate`: the start date for the report
 * `endDate`: the end date for the report
 * `dimensions`: the dimensions by which the data will be segmented
+* `queryIndividualDays`: fetches each day from the chosen date range individually in order to minimize sampling (only works if `date` is chosen as dimension)
 
 ### Scala API
 __Spark 1.4+:__
@@ -62,7 +63,8 @@ val df = sqlContext.read
     .option("ids", "ga:12345678")
     .option("startDate", "7daysAgo")
     .option("endDate", "yesterday")
-    .option("dimensions", "browser,city")
+    .option("dimensions", "date,browser,city")
+    .option("queryIndividualDays", "true")
     .load()
     
 df.select("browser", "users").show()
