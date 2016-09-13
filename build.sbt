@@ -1,16 +1,16 @@
 name := "spark-google-analytics"
 
-version := "0.9.0"
+version := "1.0.0"
 
 organization := "com.crealytics"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
 spName := "crealytics/spark-google-analytics"
 
-crossScalaVersions := Seq("2.10.5", "2.11.7")
+crossScalaVersions := Seq("2.10.6", "2.11.8")
 
-sparkVersion := "1.5.2"
+sparkVersion := "2.0.0"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 
@@ -20,8 +20,8 @@ sparkComponents := Seq("core", "sql")
 
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.5" % "provided",
-  "com.google.apis" % "google-api-services-analytics" % "v3-rev120-1.21.0",
-  "com.google.http-client" % "google-http-client-gson" % "1.21.0"
+  "com.google.apis" % "google-api-services-analytics" % "v3-rev134-1.22.0",
+  "com.google.http-client" % "google-http-client-gson" % "1.22.0"
 )
 
 publishMavenStyle := true
