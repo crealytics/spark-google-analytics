@@ -82,11 +82,7 @@ case class AnalyticsRelation protected[crealytics](
     }
 
   lazy val allMetrics = createSchemaFromColumns(allColumns.filter(_.getAttributes.get("type") == "METRIC"))
-  lazy val allDimensions = createSchemaFromColumns(allColumns.filter(
-    c => c.getAttributes.get("type") == "DIMENSION" &&
-      dimensions.contains(c.getId.replaceFirst("ga:", ""))))
-
-
+  lazy val allDimensions = createSchemaFromColumns(allColumns.filter(_.getAttributes.get("type") == "DIMENSION"))
 
   private def sparkDataTypeForGoogleDataType(dataType: String) = dataType match {
     case "PERCENT" => "DECIMAL"
@@ -160,7 +156,7 @@ case class AnalyticsRelation protected[crealytics](
     def queryDateRange(startDate: String, endDate: String) = {
       val queryWithoutFilter = analytics.data().ga()
         .get(ids, startDate, endDate, requiredMetrics.map("ga:" + _).mkString(","))
-        .setDimensions(allDimensions.map("ga:" + _.name).mkString(","))
+        .setDimensions(allDimensions.filter(c => dimensions.contains(c.name)).map("ga:" + _.name).mkString(","))
         .setMaxResults(maxPageSize)
       val query = if (filters.length > 0) queryWithoutFilter.setFilters(filtersString) else queryWithoutFilter
       val firstResult = query.execute
