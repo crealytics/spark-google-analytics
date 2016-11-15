@@ -46,6 +46,7 @@ The API accepts several options (see the [Google Analytics developer docs](https
 * `startDate`: the start date for the report
 * `endDate`: the end date for the report
 * `queryIndividualDays`: fetches each day from the chosen date range individually in order to minimize sampling (only works if `date` is chosen as dimension)
+* `calculatedMetrics`: the suffixes of any calculated metrics (defined in your GA view) you want to query
 
 ### Scala API
 __Spark 1.4+:__
@@ -62,10 +63,11 @@ val df = sqlContext.read
     .option("startDate", "7daysAgo")
     .option("endDate", "yesterday")
     .option("queryIndividualDays", "true")
+    .option("calculatedMetrics", "averageEngagement")
     .load()
 
 // You need select the date column if using queryIndividualDays
-df.select("date", "browser", "city", "users").show()
+df.select("date", "browser", "city", "users", "calcMetric_averageEngagement").show()
 ```
 
 ## Building From Source

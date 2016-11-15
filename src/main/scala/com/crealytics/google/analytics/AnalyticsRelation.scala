@@ -18,6 +18,7 @@ case class AnalyticsRelation protected[crealytics](
                                                     ids: String,
                                                     startDate: String,
                                                     endDate: String,
+                                                    calculatedMetrics: Seq[String],
                                                     queryIndividualDays: Boolean
                                                   )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan with PrunedScan with PrunedFilteredScan {
@@ -61,7 +62,11 @@ case class AnalyticsRelation protected[crealytics](
     }.takeWhile(!_.after(end)).map(dt => analyticsDateFormat.format(dt.getTime))
   }
 
-  lazy val allColumns = analytics.metadata.columns.list("ga").execute.getItems.asScala
+  lazy val defaultColumns = analytics.metadata.columns.list("ga").execute.getItems.asScala
+  lazy val calculatedMetricTemplate = defaultColumns.find(_.getId == "ga:calcMetric_<NAME>").get
+  lazy val allColumns = defaultColumns ++ calculatedMetrics.map(
+    name => calculatedMetricTemplate.clone.setId("ga:calcMetric_" + name)
+  )
 
   private def createSchemaFromColumns(columns: Seq[com.google.api.services.analytics.model.Column]) =
     columns.foldLeft(new StructType) {
