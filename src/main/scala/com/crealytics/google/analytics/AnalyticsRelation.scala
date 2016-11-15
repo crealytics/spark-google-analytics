@@ -78,7 +78,14 @@ case class AnalyticsRelation protected[crealytics](
           (minIndex to maxIndex).map(i => column.getId.replaceFirst("XX", s"$i"))
         }.getOrElse(Seq(column.getId))
         val isDimension = attributes.get("type") == "DIMENSION"
-        columnNames.foldLeft(struct) { case(s, c) => s.add(c.replaceFirst("ga:", ""), dataType, nullable = true, metadata = new MetadataBuilder().putBoolean("isDimension", isDimension).build) }
+        columnNames.foldLeft(struct) { case(s, c) =>
+          s.add(
+            c.replaceFirst("ga:", ""),
+            dataType,
+            nullable = true,
+            metadata = new MetadataBuilder().putBoolean("isDimension", isDimension).build
+          )
+        }
     }
 
   implicit class RichStructType(st: StructType) {
