@@ -4,13 +4,13 @@ version := "1.0.0"
 
 organization := "com.crealytics"
 
-scalaVersion := "2.11.8"
+scalaVersion in ThisBuild := "2.11.8"
 
 spName := "crealytics/spark-google-analytics"
 
 crossScalaVersions := Seq("2.10.6", "2.11.8")
 
-sparkVersion := "2.0.0"
+sparkVersion := "2.0.1"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 
