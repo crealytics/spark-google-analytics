@@ -18,12 +18,11 @@ case class AnalyticsRelation protected[crealytics](
                                                     ids: String,
                                                     startDate: String,
                                                     endDate: String,
-                                                    dimensions: Seq[String],
                                                     queryIndividualDays: Boolean
                                                   )(@transient val sqlContext: SQLContext)
   extends BaseRelation with TableScan with PrunedScan with PrunedFilteredScan {
 
-  override val schema: StructType = new StructType(allMetrics.fields ++ allDimensions.fields)
+  override val schema: StructType = createSchemaFromColumns(allColumns)
 
   override def buildScan: RDD[Row] = buildScan(schema.map(_.name).toArray, Array())
 
@@ -78,15 +77,20 @@ case class AnalyticsRelation protected[crealytics](
         val columnNames = templateBounds.map { case (minIndex, maxIndex) =>
           (minIndex to maxIndex).map(i => column.getId.replaceFirst("XX", s"$i"))
         }.getOrElse(Seq(column.getId))
-        columnNames.foldLeft(struct) { case(s, c) => s.add(c.replaceFirst("ga:", ""), dataType) }
+        val isDimension = attributes.get("type") == "DIMENSION"
+        columnNames.foldLeft(struct) { case(s, c) => s.add(c.replaceFirst("ga:", ""), dataType, nullable = true, metadata = new MetadataBuilder().putBoolean("isDimension", isDimension).build) }
     }
 
-  lazy val allMetrics = createSchemaFromColumns(allColumns.filter(_.getAttributes.get("type") == "METRIC"))
-  lazy val allDimensions = createSchemaFromColumns(allColumns.filter(
-    c => c.getAttributes.get("type") == "DIMENSION" &&
-      dimensions.contains(c.getId.replaceFirst("ga:", ""))))
-
-
+  implicit class RichStructType(st: StructType) {
+    def filterByIsDimension(isDimension: Boolean = true): StructType = {
+      StructType(st.filter(_.metadata.getBoolean("isDimension") == isDimension))
+    }
+    def dimensionsAndMetrics: (StructType, StructType) = {
+      val (dimensions, metrics) = st.partition(_.metadata.getBoolean("isDimension"))
+      (StructType(dimensions), StructType(metrics))
+    }
+  }
+  val (allMetrics, allDimensions) = schema.dimensionsAndMetrics
 
   private def sparkDataTypeForGoogleDataType(dataType: String) = dataType match {
     case "PERCENT" => "DECIMAL"
@@ -148,19 +152,26 @@ case class AnalyticsRelation protected[crealytics](
 
   private def getResults(ids: String, startDate: String, endDate: String,
                          requiredColumns: Seq[String], filters: Array[Filter]): Seq[Seq[Any]] = {
-    val rawMetrics = requiredColumns.filterNot(dimensions.contains)
+    val requiredSchema = StructType(requiredColumns.map(c => schema.find(_.name == c).get))
+    val (requiredDimensions, rawMetrics) = requiredSchema.dimensionsAndMetrics
+    if (queryIndividualDays && !requiredDimensions.map(_.name).contains("date")) {
+      throw new IllegalArgumentException("If you use queryIndividualDays, you must select the date dimension.")
+    }
+    val sortedColumns = requiredDimensions.fields ++ rawMetrics.fields
+    if (!(requiredSchema.fields sameElements sortedColumns)) {
+      throw new IllegalArgumentException("You need to put dimension columns at the beginning" +
+        s" e.g. df.select(${sortedColumns.map(c => s"""col("${c.name}")""").mkString(", ")})")
+    }
     val requiredMetrics = if (rawMetrics.nonEmpty) rawMetrics
     // We need at least 1 metric, otherwise Google complains
-    else Seq[String](allMetrics.head.name.replaceFirst("ga:", ""))
-    val metricsSchema = allMetrics.filter(m => requiredMetrics.contains(m.name))
-    val completeSchema = new StructType(metricsSchema.toArray ++ allDimensions.fields)
+    else Seq[StructField](allMetrics.head)
     val maxPageSize = 10000
     val filtersString = combineFilters(filters)
 
     def queryDateRange(startDate: String, endDate: String) = {
       val queryWithoutFilter = analytics.data().ga()
-        .get(ids, startDate, endDate, requiredMetrics.map("ga:" + _).mkString(","))
-        .setDimensions(allDimensions.map("ga:" + _.name).mkString(","))
+        .get(ids, startDate, endDate, requiredMetrics.map("ga:" + _.name).mkString(","))
+        .setDimensions(requiredDimensions.map("ga:" + _.name).mkString(","))
         .setMaxResults(maxPageSize)
       val query = if (filters.length > 0) queryWithoutFilter.setFilters(filtersString) else queryWithoutFilter
       val firstResult = query.execute
@@ -169,12 +180,13 @@ case class AnalyticsRelation protected[crealytics](
         retry(3)(query.setStartIndex(pageNum * maxPageSize).execute.getRows.asScala).get
       }
       val columnHeaders = firstResult.getColumnHeaders.asScala
-      val combinedResult = (firstResult.getRows.asScala ++ restResults).map(_.asScala)
+      val firstRows = Option(firstResult.getRows).getOrElse(java.util.Collections.emptyList).asScala
+      val combinedResult = (firstRows ++ restResults).map(_.asScala)
       combinedResult.map { line =>
         columnHeaders.zip(line).flatMap { case (header, cell) =>
           val name = header.getName.replaceFirst("ga:", "")
           if (requiredColumns.contains(name)) {
-            val dataType = completeSchema.apply(name).dataType
+            val dataType = requiredSchema.apply(name).dataType
             Some(castTo(cell, dataType))
           } else None
         }

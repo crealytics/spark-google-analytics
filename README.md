@@ -45,7 +45,6 @@ The API accepts several options (see the [Google Analytics developer docs](https
 * `ids`: the ID of the site for which you want to pull the data
 * `startDate`: the start date for the report
 * `endDate`: the end date for the report
-* `dimensions`: the dimensions by which the data will be segmented
 * `queryIndividualDays`: fetches each day from the chosen date range individually in order to minimize sampling (only works if `date` is chosen as dimension)
 
 ### Scala API
@@ -63,11 +62,12 @@ val df = sqlContext.read
     .option("ids", "ga:12345678")
     .option("startDate", "7daysAgo")
     .option("endDate", "yesterday")
-    .option("dimensions", "date,browser,city")
     .option("queryIndividualDays", "true")
     .load()
-    
-df.select("browser", "users").show()
+
+// You need to put dimensions at the beginning
+// and select the date column if using queryIndividualDays
+df.select("date", "browser", "city", "users").show()
 ```
 
 ## Building From Source
