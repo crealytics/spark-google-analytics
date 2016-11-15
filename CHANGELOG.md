@@ -1,5 +1,12 @@
 CHANGELOG
 =========
+1.1.0
+-----
+* Dimensions don't need to be specified in options anymore, instead just select them in the DataFrame
+* Selecting custom dimensions now works
+* Update to Spark 2.0.1
+* Update to SBT 0.13.13
+
 1.0.0
 -----
 * Update to Spark 2.0
