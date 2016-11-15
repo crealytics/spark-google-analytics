@@ -50,7 +50,6 @@ The API accepts several options (see the [Google Analytics developer docs](https
 ### Scala API
 __Spark 1.4+:__
 
-Automatically infer schema (data types), otherwise everything is assumed string:
 ```scala
 import org.apache.spark.sql.SQLContext
 
