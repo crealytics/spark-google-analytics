@@ -64,8 +64,7 @@ val df = sqlContext.read
     .option("queryIndividualDays", "true")
     .load()
 
-// You need to put dimensions at the beginning
-// and select the date column if using queryIndividualDays
+// You need select the date column if using queryIndividualDays
 df.select("date", "browser", "city", "users").show()
 ```
 

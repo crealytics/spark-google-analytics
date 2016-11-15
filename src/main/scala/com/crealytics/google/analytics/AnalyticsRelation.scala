@@ -157,11 +157,6 @@ case class AnalyticsRelation protected[crealytics](
     if (queryIndividualDays && !requiredDimensions.map(_.name).contains("date")) {
       throw new IllegalArgumentException("If you use queryIndividualDays, you must select the date dimension.")
     }
-    val sortedColumns = requiredDimensions.fields ++ rawMetrics.fields
-    if (!(requiredSchema.fields sameElements sortedColumns)) {
-      throw new IllegalArgumentException("You need to put dimension columns at the beginning" +
-        s" e.g. df.select(${sortedColumns.map(c => s"""col("${c.name}")""").mkString(", ")})")
-    }
     val requiredMetrics = if (rawMetrics.nonEmpty) rawMetrics
     // We need at least 1 metric, otherwise Google complains
     else Seq[StructField](allMetrics.head)
@@ -182,15 +177,16 @@ case class AnalyticsRelation protected[crealytics](
       val columnHeaders = firstResult.getColumnHeaders.asScala
       val firstRows = Option(firstResult.getRows).getOrElse(java.util.Collections.emptyList).asScala
       val combinedResult = (firstRows ++ restResults).map(_.asScala)
-      combinedResult.map { line =>
+      val maps = combinedResult.map { line =>
         columnHeaders.zip(line).flatMap { case (header, cell) =>
           val name = header.getName.replaceFirst("ga:", "")
           if (requiredColumns.contains(name)) {
             val dataType = requiredSchema.apply(name).dataType
-            Some(castTo(cell, dataType))
+            Some(name -> castTo(cell, dataType))
           } else None
-        }
+        }.toMap
       }
+      maps.map(m => requiredColumns.map(m(_)))
     }
 
     if (queryIndividualDays) {
