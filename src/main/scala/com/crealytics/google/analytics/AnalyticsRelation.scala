@@ -107,7 +107,7 @@ case class AnalyticsRelation protected[crealytics](
   private def sparkDataTypeForGoogleDataType(dataType: String) = dataType match {
     case "PERCENT" => "DECIMAL"
     case "CURRENCY" => "DECIMAL"
-    case "TIME" => "TIMESTAMP"
+    case "TIME" => "DECIMAL"
     case t => t
   }
 
