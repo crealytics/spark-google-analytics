@@ -31,6 +31,7 @@ class DefaultSource
     val analytics = new Analytics.Builder(httpTransport, jsonFactory, credential)
       .setApplicationName("spark-google-analytics")
       .build()
+    val calculatedMetrics = parameters.getOrElse("calculatedMetrics", "").split(",").map(_.trim)
     val queryIndividualDays: Boolean = parameters.getOrElse("queryIndividualDays", "false") == "true"
 
     AnalyticsRelation(
@@ -38,6 +39,7 @@ class DefaultSource
       parameters("ids"),
       parameters("startDate"),
       parameters("endDate"),
+      calculatedMetrics,
       queryIndividualDays
     )(sqlContext)
   }
