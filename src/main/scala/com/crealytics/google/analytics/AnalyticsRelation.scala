@@ -62,7 +62,9 @@ case class AnalyticsRelation protected[crealytics](
     }.takeWhile(!_.after(end)).map(dt => analyticsDateFormat.format(dt.getTime))
   }
 
-  lazy val defaultColumns = analytics.metadata.columns.list("ga").execute.getItems.asScala
+  lazy val defaultColumns = analytics.metadata.columns.list("ga").execute.getItems.asScala.map{ c =>
+    if (c.getId == "ga:calcMetric_<NAME>" || c.getId == "ga:metricXX") c.getAttributes.put("dataType", "DECIMAL"); c
+  }
   lazy val calculatedMetricTemplate = defaultColumns.find(_.getId == "ga:calcMetric_<NAME>").get
   lazy val allColumns = defaultColumns ++ calculatedMetrics.map(
     name => calculatedMetricTemplate.clone.setId("ga:calcMetric_" + name)
