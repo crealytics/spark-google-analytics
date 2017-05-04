@@ -71,10 +71,14 @@ val df = sqlContext.read
     .option("queryIndividualDays", "true")
     .option("calculatedMetrics", "averageEngagement")
     .load()
+
+
+// You need select the date column if using queryIndividualDays
+df.select("date", "browser", "city", "users", "calcMetric_averageEngagement").show()
 ```
 __OR__
 
-__Option 2 : Authentication with Client ID, Client Secret and Refresh Token'__
+__Option 2 : Authentication with Client ID, Client Secret and Refresh Token__
 
 ```scala
 val sqlContext = new SQLContext(sc)
