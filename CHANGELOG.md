@@ -1,5 +1,9 @@
 CHANGELOG
 =========
+1.1.1
+-----
+* Supports authentication with Client ID, Client Secret and Refresh Token
+
 1.1.0
 -----
 * Dimensions don't need to be specified in options anymore, instead just select them in the DataFrame

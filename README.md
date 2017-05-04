@@ -15,13 +15,13 @@ You can link against this library in your program at the following coordinates:
 ```
 groupId: com.crealytics
 artifactId: spark-google-analytics_2.10
-version: 1.1.0
+version: 1.1.1
 ```
 ### Scala 2.11
 ```
 groupId: com.crealytics
 artifactId: spark-google-analytics_2.11
-version: 1.1.0
+version: 1.1.1
 ```
 
 ## Using with Spark shell
@@ -29,12 +29,12 @@ This package can be added to  Spark using the `--packages` command line option. 
 
 ### Spark compiled with Scala 2.11
 ```
-$SPARK_HOME/bin/spark-shell --packages com.crealytics:spark-google-analytics_2.11:1.1.0
+$SPARK_HOME/bin/spark-shell --packages com.crealytics:spark-google-analytics_2.11:1.1.1
 ```
 
 ### Spark compiled with Scala 2.10
 ```
-$SPARK_HOME/bin/spark-shell --packages com.crealytics:spark-google-analytics_2.10:1.1.0
+$SPARK_HOME/bin/spark-shell --packages com.crealytics:spark-google-analytics_2.10:1.1.1
 ```
 
 ## Features
