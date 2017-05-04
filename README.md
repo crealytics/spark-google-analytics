@@ -56,9 +56,10 @@ __Spark 1.4+:__
 
 ```scala
 import org.apache.spark.sql.SQLContext
-
+```
 Option 1 : Authentication with Service Account ID and P12 Key File
 
+```scala
 val sqlContext = new SQLContext(sc)
 val df = sqlContext.read
     .format("com.crealytics.google.analytics")
@@ -70,11 +71,12 @@ val df = sqlContext.read
     .option("queryIndividualDays", "true")
     .option("calculatedMetrics", "averageEngagement")
     .load()
-
+```
 OR 
 
 Option 2 : Authentication with Client ID, Client Secret and Refresh Token'
 
+```scala
 val sqlContext = new SQLContext(sc)
 val df = sqlContext.read
     .format("com.crealytics.google.analytics")
