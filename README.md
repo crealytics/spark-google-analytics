@@ -44,7 +44,7 @@ The API accepts several options (see the [Google Analytics developer docs](https
 * `keyFileLocation`: a key-file that you have to generate from the developer console
 * `clientId`: an account id that you have to generate from the developer console using OAuth 2.0 credentials option
 * `clientSecret`: a client secret id that you have to obtain from the developer console for OAuth 2.0 credentials client id which you have already generated
-* `refreshToken`: a refresh token is need to be obtained by User's Login for which you wanted to collect GA data. Once user login from appropriate call you will get this token in response [OAuth2WebServer Offline](https://developers.google.com/identity/protocols/OAuth2WebServer#offline)
+* `refreshToken`: a refresh token is need to be obtained by User's Login for which you wanted to collect GA data. Once user login from appropriate call you will get this token in response See [OAuth2WebServer Offline](https://developers.google.com/identity/protocols/OAuth2WebServer#offline) for more information
 * `ids`: the ID of the site for which you want to pull the data
 * `startDate`: the start date for the report
 * `endDate`: the end date for the report
@@ -57,7 +57,7 @@ __Spark 1.4+:__
 ```scala
 import org.apache.spark.sql.SQLContext
 ```
-Option 1 : Authentication with Service Account ID and P12 Key File
+__Option 1 : Authentication with Service Account ID and P12 Key File__
 
 ```scala
 val sqlContext = new SQLContext(sc)
@@ -72,9 +72,9 @@ val df = sqlContext.read
     .option("calculatedMetrics", "averageEngagement")
     .load()
 ```
-OR 
+__OR__
 
-Option 2 : Authentication with Client ID, Client Secret and Refresh Token'
+__Option 2 : Authentication with Client ID, Client Secret and Refresh Token'__
 
 ```scala
 val sqlContext = new SQLContext(sc)
