@@ -42,6 +42,9 @@ This package allows querying Google Analytics reports as [Spark DataFrames](http
 The API accepts several options (see the [Google Analytics developer docs](https://developers.google.com/analytics/devguides/reporting/core/v3/reference#q_details) for details):
 * `serviceAccountId`: an account id for accessing the Google Analytics API (`xxx-xxxxxxx@developer.gserviceaccount.com`)
 * `keyFileLocation`: a key-file that you have to generate from the developer console
+* `clientId`: an account id that you have to generate from the developer console using OAuth 2.0 credentials option
+* `clientSecret`: a client secret id that you have to obtain from the developer console for OAuth 2.0 credentials client id which you have already generated
+* `refreshToken`: a refresh token is need to be obtained by User's Login for which you wanted to collect GA data. Once user login from appropriate call you will get this token in response. See [OAuth2WebServer Offline](https://developers.google.com/identity/protocols/OAuth2WebServer#offline) for more information
 * `ids`: the ID of the site for which you want to pull the data
 * `startDate`: the start date for the report
 * `endDate`: the end date for the report
@@ -53,7 +56,10 @@ __Spark 1.4+:__
 
 ```scala
 import org.apache.spark.sql.SQLContext
+```
+__Option 1 : Authentication with Service Account ID and P12 Key File__
 
+```scala
 val sqlContext = new SQLContext(sc)
 val df = sqlContext.read
     .format("com.crealytics.google.analytics")
@@ -65,6 +71,29 @@ val df = sqlContext.read
     .option("queryIndividualDays", "true")
     .option("calculatedMetrics", "averageEngagement")
     .load()
+
+
+// You need select the date column if using queryIndividualDays
+df.select("date", "browser", "city", "users", "calcMetric_averageEngagement").show()
+```
+__OR__
+
+__Option 2 : Authentication with Client ID, Client Secret and Refresh Token__
+
+```scala
+val sqlContext = new SQLContext(sc)
+val df = sqlContext.read
+    .format("com.crealytics.google.analytics")
+    .option("clientId", "XXXXXXXX-xyxyxxxxyxyxxxxxyyyx.apps.googleusercontent.com")
+    .option("clientSecret", "73xxYxyxy-XXXYZZx-xZ_Z")
+    .option("refreshToken", "1/ezzzxZYzxxyyXYXzyyXXYYyxxxxyyyyxxxy")
+    .option("ids", "ga:12345678")
+    .option("startDate", "7daysAgo")
+    .option("endDate", "yesterday")
+    .option("queryIndividualDays", "true")
+    .option("calculatedMetrics", "averageEngagement")
+    .load()
+
 
 // You need select the date column if using queryIndividualDays
 df.select("date", "browser", "city", "users", "calcMetric_averageEngagement").show()
