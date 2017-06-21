@@ -1,5 +1,9 @@
 CHANGELOG
 =========
+1.1.2
+-----
+* Fix a bug where paging returns duplicates
+
 1.1.1
 -----
 * Supports authentication with Client ID, Client Secret and Refresh Token
