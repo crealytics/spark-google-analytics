@@ -186,7 +186,8 @@ case class AnalyticsRelation protected[crealytics](
       val firstResult = query.execute
       val requiredPages = firstResult.getTotalResults / maxPageSize
       val restResults = (1 to requiredPages).flatMap { pageNum =>
-        retry(3)(query.setStartIndex(pageNum * maxPageSize).execute.getRows.asScala).get
+        // The analytics API is 1-based, so we need to add 1 in order not to get duplicates
+        retry(3)(query.setStartIndex(pageNum * maxPageSize + 1).execute.getRows.asScala).get
       }
       val columnHeaders = firstResult.getColumnHeaders.asScala
       val firstRows = Option(firstResult.getRows).getOrElse(java.util.Collections.emptyList).asScala
